@@ -3,3 +3,4 @@ __pycache__/
 *.cfg
 *.txt
 *.log
+.gitignore
