@@ -31,23 +31,14 @@ class Bill(object):
         self.accounts = accounts
         self.services = services
 
-        self.credentials = self.get_credentials()
+        self.credentials = get_credentials(provider)
         
         # Initialise browser
         # self.browser = Browser("phantomjs")
         
         # Initialise broweser (for debugging)
         self.browser = Browser()
-
         self.result = self.getBill()
-        
-    def get_credentials(self):
-        # Collect credentials
-        config = configparser.ConfigParser()
-        config.read('credentials.cfg')      
-        provider = process.extractOne(self.provider, config.sections())[0]
-        credentials = (config[provider]['username'], config[provider]['password'])
-        return credentials
 
     def getBill(self):
         function_names = [x for x in dir(parser) if x[0] is not "_"][1:]
@@ -57,14 +48,7 @@ class Bill(object):
             return getattr(parser, chosen_bill[0])(self.credentials, self.browser, self.services, self.accounts)
         else:
             self.browser.quit()
-            return self.notFound()
-
-    def notFound(self):
-        return "Oops, you're requesting a biller we haven't opened yet! Try another?"
-
-    def credentials(self):
-        credentials = self.credentials
-        return credentials
+            return notFound(self.provider)
 
     def all(self):
         return self.result
@@ -93,69 +77,15 @@ class Bill(object):
     def balance_discount(self):
         results = {}
         return results
-    
 
 
-###################################################
-# Everyone add your parsers here ###########
+def get_credentials(provider):
+        # Collect credentials
+        config = configparser.ConfigParser()
+        config.read('credentials.cfg')      
+        provider = process.extractOne(provider, config.sections())[0]
+        credentials = (config[provider]['username'], config[provider]['password'])
+        return credentials
 
-
-    def example(self):
-        try:
-            self.browser.visit("https://www.yourenergycompany.com")
-            self.browser.fill_form({'user': self.credentials[0], 'pass': self.credentials[1]})
-            self.browser.find_by_name('use__an_inspector').first.click()
-            # do more.
-        except:
-            print('we want real exception handling.')
-        pass
-
-    def originEnergy(self):
-        try:
-            self.browser.visit("https://online.originenergy.com.au")
-            self.browser.fill_form({'j_user': self.credentials[0], 'j_password': self.credentials[1]})
-            self.browser.find_by_name('uidPasswordLogon').first.click()
-            if self.browser.is_text_present('Welcome'):
-                with self.browser.get_iframe("ivuFrm_page0ivu1") as iframe1:  # isolatedWorkArea  ivuFrm_page0ivu4 ivuFrm_page0ivu4 sapPopupMainId_X0   obnNavIFrame externalLogOffIframe
-                    with iframe1.get_iframe("isolatedWorkArea") as iframe2:
-                        bill_html = iframe2.html
-                        # with open("origin.txt", 'w') as f:
-                        #   f.write(bill)
-                broswer.find_by_name('logout_submit').first.click()
-            else:
-                print("login was unsuccessful, try a different password")
-            self.browser.quit()
-        except: 
-            self.browser.quit()
-
-        soup = BeautifulSoup(bill_html)
-        self.result = {}
-
-        # use some variant of the "service" string to identify a link, section or page in the providers website. Here I point to the class "elec", hence service[:4].
-
-        for service in self.services:
-            # find account section shorten the service to the first or less words 
-            tr = soup.find('span', class_=service[:4]).find_previous('tr')
-            acc = tr.find('dd').get_text()
-
-            # get last payment details
-            last_amountdate = tr.find('dt', text='Last payment').find_previous('dl').find('span', class_='amount').get_text()
-            last_amount = last_amountdate.strip().split('\n')[0].replace('$','')
-
-            last_date = last_amountdate.strip().split('\n')[-1].strip()
-
-            # In case no previous payments were made, last_date and last_amount contains "dummy" spans with false info, so replace those with an empty string.
-            if '$' in last_date:
-                last_date = None
-                last_amount = None
-
-            #get current payment details
-            balance = tr.find('b', text='Account balance').find_previous('td', class_='major').find('span', class_='neg').get_text().strip().replace('$', '')
-            due = tr.next_sibling.next_sibling.find('td', class_='major').find('b', text='Due date').find_previous('span').get_text().replace('Due date', '').strip()
-            balance_discount = tr.next_sibling.next_sibling.find('td', class_='major').find('div', class_='money').get_text().strip().replace('$', '')
-
-            self.result[service] = {"last_amount":last_amount, "last_date":last_date, "balance":balance, "due":due, "balance_discount":balance_discount}
-
-        return self.result
-
-    
+def notFound(provider):
+        return "Oops, we haven't opened %s bills yet! Try another?" % provider
