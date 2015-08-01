@@ -19,6 +19,10 @@
 '''
 
 from bill import Bill
+import parser
+
+def doSomething():
+    return "0"
 
 def billme():	
 	my_bill = Bill("origin", ["gas"])

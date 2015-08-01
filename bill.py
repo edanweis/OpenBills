@@ -20,8 +20,9 @@
 
 from bs4 import BeautifulSoup
 from splinter import Browser, cookie_manager
-import requests, configparser
+import requests, configparser, parser
 from fuzzywuzzy import process
+
 
 class Bill(object): 
 
@@ -38,10 +39,8 @@ class Bill(object):
         # Initialise broweser (for debugging)
         self.browser = Browser()
 
-        self.getBill() 
+        self.result = self.getBill()
         
-
-
     def get_credentials(self):
         # Collect credentials
         config = configparser.ConfigParser()
@@ -51,17 +50,17 @@ class Bill(object):
         return credentials
 
     def getBill(self):
-        # Or create a dictionary from known list of provider parsing methods??
-        # How does this actually work? Why does it execute the function? It's just a dict.
-        provider_lookup = {"Origin Energy": self.originEnergy(), "example": self.example()}
-        self.providers = list(provider_lookup.keys())
-
-        eval(provider_lookup.get(process.extractOne(self.provider, self.providers)[0], "notFound")) # Ugly?
-
-        return 
+        function_names = [x for x in dir(parser) if x[0] is not "_"][1:]
+        chosen_bill = process.extractOne(self.provider, function_names)
+        # if fuzzy match is over 50% confidence:
+        if chosen_bill[1] > 50:
+            return getattr(parser, chosen_bill[0])(self.credentials, self.browser, self.services, self.accounts)
+        else:
+            self.browser.quit()
+            return self.notFound()
 
     def notFound(self):
-        return "provider not found"
+        return "Oops, you're requesting a biller we haven't opened yet! Try another?"
 
     def credentials(self):
         credentials = self.credentials
@@ -106,6 +105,7 @@ class Bill(object):
             self.browser.visit("https://www.yourenergycompany.com")
             self.browser.fill_form({'user': self.credentials[0], 'pass': self.credentials[1]})
             self.browser.find_by_name('use__an_inspector').first.click()
+            # do more.
         except:
             print('we want real exception handling.')
         pass
