@@ -1,3 +1,5 @@
+![Asian Openbill stork](openbill.png)
+
 OpenBills
 ===
 
