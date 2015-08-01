@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 OpenBills
 ===
 
@@ -23,11 +22,6 @@ Usage
 
 Under development.
 
-=======
-![OpenBills](openbill.png)
-# OpenBills
-An API for public utilities designed to enable easy retrieval of customer billing and usage information.
->>>>>>> 8725ec37da3b2a9297e81f9ae1a200210ac9d7f5
 
 License
 ---
